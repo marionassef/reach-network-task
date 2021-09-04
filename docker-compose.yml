@@ -1,0 +1,87 @@
+version: "3.7"
+services:
+  reach_network_task_webserver:
+    image: nginx:alpine
+    container_name: reach_network_task_webserver
+    restart: unless-stopped
+    ports:
+      - "7445:80"
+    volumes:
+      - ./src:/var/www
+      - ./nginx/conf.d:/etc/nginx/conf.d/
+      - ./nginx/logs/:/var/log/nginx/
+    networks:
+      - reach_network_task_network
+
+  reach_network_task_www:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: reach_network_task_www
+    working_dir: /var/www
+    expose:
+      - 9000
+    depends_on:
+      - reach_network_task_db
+    volumes:
+      - ./src:/var/www/
+      - ./php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - reach_network_task_network
+
+  reach_network_task_db:
+    image: mysql:5.7
+    container_name: reach_network_task_db
+    hostname: reach_network_task_db
+    platform: linux/x86_64
+    restart: unless-stopped
+    command: --explicit_defaults_for_timestamp --ignore-db-dir=lost+found
+    ports:
+      - "7446:3306"
+    environment:
+      MYSQL_DATABASE: "reach_network_task_db"
+      MYSQL_USER: "root"
+      MYSQL_PASSWORD: ""
+      MYSQL_ROOT_PASSWORD: ""
+    volumes:
+      - reach_network_task_db:/var/lib/mysql
+    networks:
+      - reach_network_task_network
+
+
+  reach_network_task_redis:
+    image: redis
+    restart: unless-stopped
+    container_name: reach_network_task_redis
+    hostname: reach_network_task_redis
+    ports:
+      - "7447:6379"
+    networks:
+      - reach_network_task_network
+
+  reach_network_task_supervisor:
+    build:
+      context: ./supervisor
+      dockerfile: Dockerfile
+    container_name: reach_network_task_supervisor
+    restart: unless-stopped
+    environment:
+      - APP_ROOT=/var/www
+      - OPTIONS="--tries=3"
+      - QUEUE_DRIVER=redis
+      - NUM_PROCS=4
+    volumes:
+      - ./src:/var/www
+      - ./supervisor/supervisord.conf:/etc/supervisord.conf
+    networks:
+      - reach_network_task_network
+
+
+networks:
+  reach_network_task_network:
+    driver: bridge
+    name: reach_network_task_network
+
+volumes:
+  reach_network_task_db:

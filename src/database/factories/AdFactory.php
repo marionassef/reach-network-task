@@ -1,0 +1,41 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\Ad;
+use App\Models\Category;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+
+class AdFactory extends Factory
+{
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected $model = Ad::class;
+
+    /**
+     * Define the model's default state.
+     *
+     * @return array
+     */
+    public function definition()
+    {
+        $category = Category::factory()->create();
+        $user = User::factory()->create();
+        return [
+            'title' => $this->faker->name(),
+            'description' => $this->faker->text(),
+            'type' => 'FREE',
+            'category_id' => $category->id,
+            'user_id' => $user->id,
+            'start_date' => date('Y-m-d'),
+            'end_date' => date('Y-m-d'),
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+    }
+}
